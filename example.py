@@ -20,8 +20,8 @@ def plot_embedding_pca(embeddings, vocab, word_indices, offset=.01, random_state
 
 with open ('shakespeare.txt', 'r') as f:
     text = f.read()
-    # Truncate before the beginning of the main text
-    text = text[2772:]
+    # Truncate to the main text
+    text = text[2772:5552063]
     text = text.lower()
 
     words = nltk.wordpunct_tokenize(text)
