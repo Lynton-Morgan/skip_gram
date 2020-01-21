@@ -51,6 +51,7 @@ class SkipGram(object):
                     num_sampled=n_neg_samples,
                     num_classes=vocab_length,
                     num_true = context_size,
+                    remove_accidental_hits=False,
                     name='sampled_loss')
 
             optimizer = v1.train.AdamOptimizer(learning_rate)
