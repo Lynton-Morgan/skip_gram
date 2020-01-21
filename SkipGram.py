@@ -91,8 +91,12 @@ class SkipGram(object):
             return sess.run(['w_emb:0', 'c_emb:0', 'logits:0'], feed_dict={'w:0':w, 'c:0':c})
 
     def train(self, word_indices, context_indices, batch_size=64, neg_sample_rate=5, learning_rate=1e-4,
-            n_epochs=5, checkpoint_dir=None, load_prev=False, prev_epochs=0, reports_per_epoch=10):
+            n_epochs=5, checkpoint_dir=None, load_prev=False, prev_epochs=0, reports_per_epoch=10,
+            seed=0):
         assert len(word_indices) == len(context_indices)
+
+        random = np.random.RandomState(seed)
+
         n_samples = len(word_indices)
         n_batches = len(range(0, n_samples, batch_size))
         report_at_batches = [int(round(x * n_batches / reports_per_epoch)) for x in range(1, reports_per_epoch+1)]
@@ -123,6 +127,10 @@ class SkipGram(object):
 
                 if checkpoint_dir is not None:
                     saver.save(sess, checkpoint_dir + "/skip_gram-%d.ckpt" % (epoch+prev_epochs))
+
+                if epoch < n_epochs:
+                    random.shuffle(word_indices)
+                    random.shuffle(context_indices)
 
     def embed(self, word_indices, checkpoint_dir='./model'):
         g = self.build_graph(self.vocab_length, self.emb_length)
