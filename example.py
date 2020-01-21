@@ -46,8 +46,9 @@ vocab = [p[0] for p in word_counts.most_common()]
 word2int = {p[0]:i for i, p in enumerate(word_counts.most_common())}
 int2word = {i:p[0] for i, p in enumerate(word_counts.most_common())}
 
-text_indices = [word2int[w] for w in words]
-idx_couples = np.array(skipgrams(text_indices, vocab_length, window_size=4, negative_samples=0.)[0])
+# skipgrams() assumes 0 is not a word, so some shifting is done
+text_indices = np.array([word2int[w] for w in words])
+idx_couples = np.array(skipgrams(text_indices+1, vocab_length+1, window_size=4, negative_samples=0.)[0]) - 1
 word_indices = idx_couples[:,0]
 context_indices = idx_couples[:,1].reshape(-1,1)
 
