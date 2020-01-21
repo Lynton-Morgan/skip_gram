@@ -91,10 +91,10 @@ class SkipGram(object):
             return sess.run(['w_emb:0', 'c_emb:0', 'logits:0'], feed_dict={'w:0':w, 'c:0':c})
 
     def train(self, word_indices, context_indices, batch_size=64, neg_sample_rate=5, learning_rate=1e-4,
-            n_epochs=5, checkpoint_dir=None, prev_epochs=0, reports_per_epoch=10):
+            n_epochs=5, checkpoint_dir=None, load_prev=False, prev_epochs=0, reports_per_epoch=10):
         assert len(word_indices) == len(context_indices)
         n_samples = len(word_indices)
-        n_batches = n_samples // batch_size
+        n_batches = len(range(0, n_samples, batch_size))
         report_at_batches = [int(round(x * n_batches / reports_per_epoch)) for x in range(1, reports_per_epoch+1)]
         
         n_neg_samples = int(round(batch_size * neg_sample_rate))
@@ -105,11 +105,8 @@ class SkipGram(object):
             saver = tf.train.Saver()
 
         with tf.Session(graph=g) as sess:
-            if checkpoint_dir is None:
-                sess.run(tf.global_variables_initializer())
-
-            else:
-                sess.run(tf.global_variables_initializer())
+            sess.run(tf.global_variables_initializer())
+            if checkpoint_dir is not None and load_prev==True:
                 saver.restore(
                     sess, 
                     tf.train.latest_checkpoint(checkpoint_dir))
@@ -124,7 +121,8 @@ class SkipGram(object):
                         loss = sess.run('loss:0', feed_dict=feed)
                         print('Epoch %d, batch %d: loss %.4f' % (epoch, batch_n, loss))
 
-                saver.save(sess, checkpoint_dir + "/skip_gram-%d.ckpt" % (epoch+prev_epochs))
+                if checkpoint_dir is not None:
+                    saver.save(sess, checkpoint_dir + "/skip_gram-%d.ckpt" % (epoch+prev_epochs))
 
     def embed(self, word_indices, checkpoint_dir='./model'):
         g = self.build_graph(self.vocab_length, self.emb_length)
