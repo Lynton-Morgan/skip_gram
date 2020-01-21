@@ -1,5 +1,6 @@
 import numpy as np
 import tensorflow as tf
+import tensorflow.compat.v1 as v1
 import os
 
 class SkipGram(object):
@@ -16,14 +17,14 @@ class SkipGram(object):
         g = tf.Graph()
         with g.as_default():
             # word indices
-            w = tf.placeholder(tf.int32, shape=(None), name='w')
+            w = v1.placeholder(tf.int32, shape=(None), name='w')
 
             # context indices
-            c = tf.placeholder(tf.int32, shape=(None, None), name='c')
+            c = v1.placeholder(tf.int32, shape=(None, None), name='c')
 
-            learning_rate = tf.placeholder_with_default(1e-4, shape=(), name='learning_rate')
+            learning_rate = v1.placeholder_with_default(1e-4, shape=(), name='learning_rate')
 
-            emb_init = tf.initializers.he_normal(seed=self.tf_seed)
+            emb_init = v1.initializers.he_normal(seed=self.tf_seed)
             embeddings = tf.Variable(emb_init(shape=(vocab_length, emb_length)),
                     name='embedding')
 
@@ -53,7 +54,7 @@ class SkipGram(object):
                     num_true = context_size,
                     name='sampled_loss')
 
-            optimizer = tf.train.AdamOptimizer(learning_rate)
+            optimizer = v1.train.AdamOptimizer(learning_rate)
             train_op = optimizer.minimize(sampled_loss, name='train_op')
 
         return g
@@ -61,8 +62,8 @@ class SkipGram(object):
 
     def show_w_emb(self):
         g = self.build_graph(self.vocab_length, self.emb_length)
-        with tf.Session(graph=g) as sess:
-            sess.run(tf.global_variables_initializer())
+        with v1.Session(graph=g) as sess:
+            sess.run(v1.global_variables_initializer())
 
             w = list(range(self.vocab_length))
             return sess.run('w_emb:0', feed_dict={'w:0':w})
@@ -73,8 +74,8 @@ class SkipGram(object):
         context_size = len(c[0])
 
         g = self.build_graph(self.vocab_length, self.emb_length, context_size=context_size)
-        with tf.Session(graph=g) as sess:
-            sess.run(tf.global_variables_initializer())
+        with v1.Session(graph=g) as sess:
+            sess.run(v1.global_variables_initializer())
 
             return sess.run('c_emb:0', feed_dict={'c:0':c})
 
@@ -86,8 +87,8 @@ class SkipGram(object):
         context_size = len(c[0])
 
         g = self.build_graph(self.vocab_length, self.emb_length, context_size=context_size)
-        with tf.Session(graph=g) as sess:
-            sess.run(tf.global_variables_initializer())
+        with v1.Session(graph=g) as sess:
+            sess.run(v1.global_variables_initializer())
 
             return sess.run(['w_emb:0', 'c_emb:0', 'logits:0'], feed_dict={'w:0':w, 'c:0':c})
 
@@ -107,10 +108,10 @@ class SkipGram(object):
 
         g = self.build_graph(self.vocab_length, self.emb_length, n_neg_samples=n_neg_samples, context_size=context_size)
         with g.as_default():
-            saver = tf.train.Saver()
+            saver = v1.train.Saver()
 
-        with tf.Session(graph=g) as sess:
-            sess.run(tf.global_variables_initializer())
+        with v1.Session(graph=g) as sess:
+            sess.run(v1.global_variables_initializer())
             if checkpoint_dir is not None and load_prev == True:
                 saver.restore(
                     sess, 
@@ -136,9 +137,9 @@ class SkipGram(object):
     def embed(self, word_indices, checkpoint_dir='./model'):
         g = self.build_graph(self.vocab_length, self.emb_length)
         with g.as_default():
-            saver = tf.train.Saver()
+            saver = v1.train.Saver()
 
-        with tf.Session(graph=g) as sess:
+        with v1.Session(graph=g) as sess:
             saver.restore(
                 sess, 
                 tf.train.latest_checkpoint(checkpoint_dir))
