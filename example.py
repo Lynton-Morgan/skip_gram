@@ -1,4 +1,15 @@
+import numpy as np
+import tensorflow as tf
+from matplotlib import pyplot as plt
+from sklearn.decomposition import PCA
 
+from collections import Counter
+from string import punctuation
+import nltk
+
+from tensorflow.keras.preprocessing.sequence import skipgrams
+
+from SkipGram import SkipGram
 
 def plot_embedding_pca(embeddings, vocab, word_indices, offset=.01, random_state=0):
     fig = plt.figure()
@@ -40,9 +51,8 @@ idx_couples = np.array(skipgrams(text_indices, vocab_length, window_size=4, nega
 word_indices = idx_couples[:,0]
 context_indices = idx_couples[:,1].reshape(-1,1)
 
-#num_sampled: the number of classes to randomly sample per BATCH
 sg = SkipGram(vocab_length, emb_length=128)
-sg.train(word_indices, context_indices, batch_size=1024, neg_sample_rate=5, n_epochs=3)
+sg.train(word_indices, context_indices, batch_size=1024, neg_sample_rate=5, n_epochs=3, checkpoint_dir='./model')
 
 emb = sg.embed(list(range(vocab_length)), checkpoint_dir='./model')
 
