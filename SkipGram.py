@@ -5,12 +5,11 @@ import os
 
 class SkipGram(object):
 
-    def __init__(self, vocab_length, emb_length, tf_seed=0):
+    def __init__(self, vocab_length, emb_length):
         self.vocab_length = vocab_length
         self.emb_length = emb_length
-        self.tf_seed = tf_seed
 
-    def build_graph(self, vocab_length, emb_length, context_size=None, n_neg_samples=1):
+    def build_graph(self, vocab_length, emb_length, context_size=None, n_neg_samples=1, tf_seed=0):
         if context_size is None:
             context_size=1
 
@@ -24,7 +23,7 @@ class SkipGram(object):
 
             learning_rate = v1.placeholder_with_default(1e-4, shape=(), name='learning_rate')
 
-            emb_init = v1.initializers.he_normal(seed=self.tf_seed)
+            emb_init = v1.initializers.he_normal(seed=tf_seed)
             embeddings = tf.Variable(emb_init(shape=(vocab_length, emb_length)),
                     name='embedding')
 
@@ -106,7 +105,7 @@ class SkipGram(object):
         n_neg_samples = int(round(batch_size * neg_sample_rate))
         context_size = len(context_indices[0])
 
-        g = self.build_graph(self.vocab_length, self.emb_length, n_neg_samples=n_neg_samples, context_size=context_size)
+        g = self.build_graph(self.vocab_length, self.emb_length, n_neg_samples=n_neg_samples, context_size=context_size, tf_seed=seed)
         with g.as_default():
             saver = v1.train.Saver()
 
@@ -134,15 +133,17 @@ class SkipGram(object):
                     random.shuffle(word_indices)
                     random.shuffle(context_indices)
 
-    def embed(self, word_indices, checkpoint_dir='./model'):
-        g = self.build_graph(self.vocab_length, self.emb_length)
+    def embed(self, word_indices, checkpoint_dir='./model', seed=0):
+        g = self.build_graph(self.vocab_length, self.emb_length, tf_seed=seed)
         with g.as_default():
             saver = v1.train.Saver()
 
         with v1.Session(graph=g) as sess:
-            saver.restore(
-                sess, 
-                tf.train.latest_checkpoint(checkpoint_dir))
+            sess.run(v1.global_variables_initializer())
+            if checkpoint_dir is not None:
+                saver.restore(
+                    sess, 
+                    tf.train.latest_checkpoint(checkpoint_dir))
 
             feed={'w:0': word_indices}
             return sess.run('w_emb:0', feed)
