@@ -2,6 +2,7 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.compat.v1 as v1
 import os
+from datetime import datetime
 
 class SkipGram(object):
 
@@ -125,10 +126,10 @@ class SkipGram(object):
 
                     if print_reports == True and batch_n in report_at_batches:
                         loss = sess.run('loss:0', feed_dict=feed)
-                        print('Epoch %d, batch %d: loss %.4f' % (epoch, batch_n, loss))
+                        print(str(datetime.now())+':', 'Epoch %d, batch %d: loss %.4f' % (epoch, batch_n, loss))
 
                 if checkpoint_dir is not None:
-                    saver.save(sess, os.path.join(checkpoint_dir, 'skip_gram'), global_step=epoch+prev_epochs)
+                    saver.save(sess, os.path.join(checkpoint_dir, 'skip_gram_'+str(self.emb_length)), global_step=epoch+prev_epochs)
 
                 if epoch < n_epochs:
                     random.shuffle(word_indices)
