@@ -1,5 +1,6 @@
 import numpy as np
 import tensorflow as tf
+import os
 
 class SkipGram(object):
 
@@ -91,7 +92,7 @@ class SkipGram(object):
             return sess.run(['w_emb:0', 'c_emb:0', 'logits:0'], feed_dict={'w:0':w, 'c:0':c})
 
     def train(self, word_indices, context_indices, batch_size=64, neg_sample_rate=5, learning_rate=1e-4,
-            n_epochs=5, checkpoint_dir=None, load_prev=False, prev_epochs=0, reports_per_epoch=10,
+            n_epochs=5, checkpoint_dir=None, load_prev=False, prev_epochs=0, print_reports=False, reports_per_epoch=10,
             seed=0):
         assert len(word_indices) == len(context_indices)
 
@@ -110,7 +111,7 @@ class SkipGram(object):
 
         with tf.Session(graph=g) as sess:
             sess.run(tf.global_variables_initializer())
-            if checkpoint_dir is not None and load_prev==True:
+            if checkpoint_dir is not None and load_prev == True:
                 saver.restore(
                     sess, 
                     tf.train.latest_checkpoint(checkpoint_dir))
@@ -121,12 +122,12 @@ class SkipGram(object):
                     feed = {'w:0':w, 'c:0':c, 'learning_rate:0':learning_rate}
                     _ = sess.run('train_op', feed_dict=feed)
 
-                    if batch_n in report_at_batches:
+                    if print_reports == True and batch_n in report_at_batches:
                         loss = sess.run('loss:0', feed_dict=feed)
                         print('Epoch %d, batch %d: loss %.4f' % (epoch, batch_n, loss))
 
                 if checkpoint_dir is not None:
-                    saver.save(sess, checkpoint_dir + "/skip_gram-%d.ckpt" % (epoch+prev_epochs))
+                    saver.save(sess, os.path.join(checkpoint_dir, 'skip_gram'), global_step=epoch+prev_epochs)
 
                 if epoch < n_epochs:
                     random.shuffle(word_indices)
