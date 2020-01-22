@@ -84,14 +84,14 @@ class SkipGram(object):
         n = self.vocab_length
 
         w = list(range(self.vocab_length))
-        c = [[(i-1)%n, i%n, (i+1)%n] for i in range(self.vocab_length)]
+        c = [[(i-1)%n, (i+1)%n] for i in range(self.vocab_length)]
         context_size = len(c[0])
 
         g = self.build_graph(self.vocab_length, self.emb_length, context_size=context_size)
         with v1.Session(graph=g) as sess:
             sess.run(v1.global_variables_initializer())
 
-            return sess.run(['w_emb:0', 'c_emb:0', 'logits:0'], feed_dict={'w:0':w, 'c:0':c})
+            return sess.run(['w_emb:0', 'c_emb:0', 'c_logits:0'], feed_dict={'w:0':w, 'c:0':c})
 
     def train(self, word_indices, context_indices, batch_size=64, neg_sample_rate=5, learning_rate=1e-4,
             n_epochs=5, checkpoint_dir=None, load_prev=False, prev_epochs=0, print_reports=False, reports_per_epoch=10,
