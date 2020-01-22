@@ -93,6 +93,40 @@ class SkipGram(object):
 
             return sess.run(['w_emb:0', 'c_emb:0', 'c_logits:0'], feed_dict={'w:0':w, 'c:0':c})
 
+    def loss(self, word_indices, context_indices, checkpoint_dir=None, use_batches=False, batch_size=1024, seed=0):
+        assert len(word_indices) == len(context_indices)
+        assert type(use_batches)==type(True)
+
+        g = self.build_graph(self.vocab_length, self.emb_length, tf_seed=seed)
+        with g.as_default():
+            saver = v1.train.Saver()
+
+        with v1.Session(graph=g) as sess:
+            sess.run(v1.global_variables_initializer())
+            if checkpoint_dir is not None:
+                saver.restore(
+                    sess, 
+                    tf.train.latest_checkpoint(checkpoint_dir))
+
+            if use_batches==False:
+                feed = {'w:0': word_indices, 'c:0': context_indices}
+                return sess.run('loss:0', feed_dict=feed)
+
+            elif use_batches==True:
+                n_samples = len(word_indices)
+                n_batches = len(range(0, n_samples, batch_size))
+
+                losses = np.zeros(n_batches)
+                weights = np.zeros(n_batches)
+
+                for batch_idx, j in enumerate(range(0, n_samples, batch_size)):
+                    w, c = word_indices[j:j+batch_size], context_indices[j:j+batch_size]
+                    feed = {'w:0':w, 'c:0':c}
+                    losses[batch_idx] = sess.run('loss:0', feed_dict=feed)
+                    weights[batch_idx] = len(w)
+
+                return np.average(losses, None, weights)
+
     def train(self, word_indices, context_indices, batch_size=64, neg_sample_rate=5, learning_rate=1e-4,
             n_epochs=5, checkpoint_dir=None, load_prev=False, prev_epochs=0, print_reports=False, reports_per_epoch=10,
             seed=0):
