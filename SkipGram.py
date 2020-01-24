@@ -138,7 +138,7 @@ class SkipGram(object):
         n_batches = len(range(0, n_samples, batch_size))
         report_at_batches = [int(round(x * n_batches / reports_per_epoch)) for x in range(1, reports_per_epoch+1)]
         
-        n_neg_samples = int(round(batch_size * neg_sample_rate))
+        n_neg_samples = max(1, int(round(batch_size * neg_sample_rate)))
         context_size = len(context_indices[0])
 
         g = self.build_graph(self.vocab_length, self.emb_length, n_neg_samples=n_neg_samples, context_size=context_size, tf_seed=seed)
@@ -160,7 +160,7 @@ class SkipGram(object):
 
                     if print_reports == True and batch_n in report_at_batches:
                         loss = sess.run('loss:0', feed_dict=feed)
-                        print(str(datetime.now())+':', 'Epoch %d, batch %d: loss %.4f' % (epoch, batch_n, loss))
+                        print(str(datetime.now())+':', 'Epoch %d, batch %d: loss %.4f' % (epoch+prev_epochs, batch_n, loss))
 
                 if checkpoint_dir is not None:
                     saver.save(sess, os.path.join(checkpoint_dir, 'skip_gram_'+str(self.emb_length)), global_step=epoch+prev_epochs)
