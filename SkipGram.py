@@ -24,9 +24,14 @@ class SkipGram(object):
 
             learning_rate = v1.placeholder_with_default(1e-4, shape=(), name='learning_rate')
 
+            l1_penalty = v1.placeholder_with_default(0.0, shape=(), name='l1_penalty')
+            l2_penalty = v1.placeholder_with_default(1.0, shape=(), name='l2_penalty')
+
             emb_init = v1.initializers.he_normal(seed=tf_seed)
             embeddings = tf.Variable(emb_init(shape=(vocab_length, emb_length)),
                     name='embedding')
+            l1_loss = l1_penalty * tf.reduce_mean(tf.abs(embeddings))
+            l2_loss = l2_penalty * tf.reduce_mean(tf.math.reduce_euclidean_norm(embeddings, axis=1))
 
             w_emb = tf.nn.embedding_lookup(
                     embeddings,
@@ -43,6 +48,7 @@ class SkipGram(object):
             loss = tf.reduce_mean(
                     loss_normalizer - tf.reduce_sum(c_logits, axis=1),
                     name='loss')
+            regularized_loss = tf.identity(loss + l1_loss + l2_loss, name='regularized_loss')
 
             sampled_loss = tf.nn.sampled_softmax_loss(
                     weights=embeddings,
@@ -54,9 +60,10 @@ class SkipGram(object):
                     num_true = context_size,
                     remove_accidental_hits=False,
                     name='sampled_loss')
+            training_loss = sampled_loss + l1_loss + l2_loss
 
             optimizer = v1.train.AdamOptimizer(learning_rate)
-            train_op = optimizer.minimize(sampled_loss, name='train_op')
+            train_op = optimizer.minimize(training_loss, name='train_op')
 
         return g
 
@@ -93,9 +100,15 @@ class SkipGram(object):
 
             return sess.run(['w_emb:0', 'c_emb:0', 'c_logits:0'], feed_dict={'w:0':w, 'c:0':c})
 
-    def loss(self, word_indices, context_indices, checkpoint_dir=None, use_batches=False, batch_size=1024, seed=0):
+    def loss(self, word_indices, context_indices, regularize=False, l1_penalty=0., l2_penalty=1., checkpoint_dir=None, use_batches=False, batch_size=1024, seed=0):
         assert len(word_indices) == len(context_indices)
+        assert type(regularize)==type(True)
         assert type(use_batches)==type(True)
+
+        if regularize:
+            loss_name='regularized_loss:0'
+        else:
+            loss_name='loss:0'
 
         g = self.build_graph(self.vocab_length, self.emb_length, tf_seed=seed)
         with g.as_default():
@@ -109,8 +122,9 @@ class SkipGram(object):
                     tf.train.latest_checkpoint(checkpoint_dir))
 
             if use_batches==False:
-                feed = {'w:0': word_indices, 'c:0': context_indices}
-                return sess.run('loss:0', feed_dict=feed)
+                feed = {'w:0': word_indices, 'c:0': context_indices,
+                        'l1_penalty:0':l1_penalty, 'l2_penalty:0':l2_penalty}
+                return sess.run(loss_name, feed_dict=feed)
 
             elif use_batches==True:
                 n_samples = len(word_indices)
@@ -121,13 +135,14 @@ class SkipGram(object):
 
                 for batch_idx, j in enumerate(range(0, n_samples, batch_size)):
                     w, c = word_indices[j:j+batch_size], context_indices[j:j+batch_size]
-                    feed = {'w:0':w, 'c:0':c}
-                    losses[batch_idx] = sess.run('loss:0', feed_dict=feed)
+                    feed = {'w:0':w, 'c:0':c,
+                        'l1_penalty:0':l1_penalty, 'l2_penalty:0':l2_penalty}
+                    losses[batch_idx] = sess.run(loss_name, feed_dict=feed)
                     weights[batch_idx] = len(w)
 
                 return np.average(losses, None, weights)
 
-    def train(self, word_indices, context_indices, batch_size=64, neg_sample_rate=5, learning_rate=1e-4,
+    def train(self, word_indices, context_indices, l1_penalty=0., l2_penalty=1., batch_size=64, neg_sample_rate=5, learning_rate=1e-4,
             n_epochs=5, checkpoint_dir=None, load_prev=False, prev_epochs=0, print_reports=False, reports_per_epoch=10,
             seed=0):
         assert len(word_indices) == len(context_indices)
@@ -155,11 +170,13 @@ class SkipGram(object):
             for epoch in range(1, n_epochs+1):
                 for batch_n, j in enumerate(range(0, n_samples, batch_size), 1):
                     w, c = word_indices[j:j+batch_size], context_indices[j:j+batch_size]
-                    feed = {'w:0':w, 'c:0':c, 'learning_rate:0':learning_rate}
+                    feed = {'w:0':w, 'c:0':c, 'learning_rate:0':learning_rate,
+                            'l1_penalty:0':l1_penalty, 'l2_penalty:0':l2_penalty}
+
                     _ = sess.run('train_op', feed_dict=feed)
 
                     if print_reports == True and batch_n in report_at_batches:
-                        loss = sess.run('loss:0', feed_dict=feed)
+                        loss = sess.run('regularized_loss:0', feed_dict=feed)
                         print(str(datetime.now())+':', 'Epoch %d, batch %d: loss %.4f' % (epoch+prev_epochs, batch_n, loss))
 
                 if checkpoint_dir is not None:
