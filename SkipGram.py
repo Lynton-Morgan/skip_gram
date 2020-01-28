@@ -10,17 +10,17 @@ class SkipGram(object):
         self.vocab_length = vocab_length
         self.emb_length = emb_length
 
-    def build_graph(self, vocab_length, emb_length, context_size=None, n_neg_samples=1, tf_seed=0):
+    def build_graph(self, vocab_length, emb_length, context_size=None, sampling='log-uniform', n_neg_samples=1, tf_seed=0):
         if context_size is None:
             context_size=1
 
         g = tf.Graph()
         with g.as_default():
             # word indices
-            w = v1.placeholder(tf.int32, shape=(None), name='w')
+            w = v1.placeholder(tf.int64, shape=(None), name='w')
 
             # context indices
-            c = v1.placeholder(tf.int32, shape=(None, None), name='c')
+            c = v1.placeholder(tf.int64, shape=(None, None), name='c')
 
             learning_rate = v1.placeholder_with_default(1e-4, shape=(), name='learning_rate')
 
@@ -50,6 +50,23 @@ class SkipGram(object):
                     name='loss')
             regularized_loss = tf.identity(loss + l1_loss + l2_loss, name='regularized_loss')
 
+            if sampling=='uniform':
+                sampled_values = tf.random.uniform_candidate_sampler(
+                        true_classes=c,
+                        num_true=context_size,
+                        num_sampled=n_neg_samples,
+                        unique=True,
+                        range_max=vocab_length)
+            elif sampling=='log-uniform':
+                sampled_values = tf.random.log_uniform_candidate_sampler(
+                        true_classes=c,
+                        num_true=context_size,
+                        num_sampled=n_neg_samples,
+                        unique=True,
+                        range_max=vocab_length)
+            else:
+                raise AssertionError('Invalid sampling option')
+
             sampled_loss = tf.nn.sampled_softmax_loss(
                     weights=embeddings,
                     biases=tf.zeros(vocab_length),
@@ -58,6 +75,7 @@ class SkipGram(object):
                     num_sampled=n_neg_samples,
                     num_classes=vocab_length,
                     num_true = context_size,
+                    sampled_values=sampled_values,
                     remove_accidental_hits=False,
                     name='sampled_loss')
             training_loss = sampled_loss + l1_loss + l2_loss
@@ -142,7 +160,7 @@ class SkipGram(object):
 
                 return np.average(losses, None, weights)
 
-    def train(self, word_indices, context_indices, l1_penalty=0., l2_penalty=1., batch_size=64, neg_sample_rate=5, learning_rate=1e-4,
+    def train(self, word_indices, context_indices, l1_penalty=0., l2_penalty=1., sampling='log-uniform', neg_sample_rate=5, batch_size=64, learning_rate=1e-4,
             n_epochs=5, checkpoint_dir=None, load_prev=False, prev_epochs=0, print_reports=False, reports_per_epoch=10,
             seed=0):
         assert len(word_indices) == len(context_indices)
