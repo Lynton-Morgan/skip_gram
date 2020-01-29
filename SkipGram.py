@@ -174,7 +174,7 @@ class SkipGram(object):
         n_neg_samples = max(1, int(round(batch_size * neg_sample_rate)))
         context_size = len(context_indices[0])
 
-        g = self.build_graph(self.vocab_length, self.emb_length, n_neg_samples=n_neg_samples, context_size=context_size, tf_seed=seed)
+        g = self.build_graph(self.vocab_length, self.emb_length, context_size=context_size, sampling=sampling, n_neg_samples=n_neg_samples, tf_seed=seed)
         with g.as_default():
             saver = v1.train.Saver()
 
