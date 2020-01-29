@@ -171,8 +171,8 @@ class SkipGram(object):
         n_batches = len(range(0, n_samples, batch_size))
         report_at_batches = [int(round(x * n_batches / reports_per_epoch)) for x in range(1, reports_per_epoch+1)]
         
-        n_neg_samples = max(1, int(round(batch_size * neg_sample_rate)))
         context_size = len(context_indices[0])
+        n_neg_samples = max(1, int(round(neg_sample_rate * batch_size * context_size)))
 
         g = self.build_graph(self.vocab_length, self.emb_length, context_size=context_size, sampling=sampling, n_neg_samples=n_neg_samples, tf_seed=seed)
         with g.as_default():
