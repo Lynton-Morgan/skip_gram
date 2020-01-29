@@ -67,7 +67,8 @@ class SkipGram(object):
             else:
                 raise AssertionError('Invalid sampling option')
 
-            sampled_loss = tf.nn.sampled_softmax_loss(
+            sampled_loss = tf.reduce_mean(
+                    tf.nn.sampled_softmax_loss(
                     weights=embeddings,
                     biases=tf.zeros(vocab_length),
                     labels=c,
@@ -76,7 +77,7 @@ class SkipGram(object):
                     num_classes=vocab_length,
                     num_true = context_size,
                     sampled_values=sampled_values,
-                    remove_accidental_hits=False,
+                    remove_accidental_hits=False),
                     name='sampled_loss')
             training_loss = sampled_loss + l1_loss + l2_loss
 
