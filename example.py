@@ -10,24 +10,7 @@ import nltk
 from tensorflow.keras.preprocessing.sequence import skipgrams
 
 from SkipGram import SkipGram
-
-def plot_embedding_pca(embeddings, vocab, word_indices, offset=.01, random_state=0):
-    fig = plt.figure()
-
-    pca = PCA(n_components=2, random_state=random_state)
-    pca.fit(embeddings)
-    emb_pca = pca.transform(embeddings)
-
-    x = emb_pca[word_indices, 0]
-    y = emb_pca[word_indices, 1]
-
-    plt.scatter(x, y, figure=fig)
-    for idx in word_indices:
-        plt.text(emb_pca[idx, 0] + offset, emb_pca[idx, 1] + offset, vocab[idx],
-                figure=fig)
-
-    plt.axis('equal')
-    return fig
+from plot_embedding_pca import plot_embedding_pca
 
 with open ('shakespeare.txt', 'r') as f:
     text = f.read()
@@ -45,7 +28,7 @@ vocab = [p[0] for p in word_counts.most_common()]
 
 word2int = {p[0]:i for i, p in enumerate(word_counts.most_common())}
 int2word = {i:p[0] for i, p in enumerate(word_counts.most_common())}
-
+, neg_sample_rate=5
 # skipgrams() assumes 0 is not a word, so some shifting is done
 text_indices = np.array([word2int[w] for w in words])
 idx_couples = np.array(skipgrams(text_indices+1, vocab_length+1, window_size=4, negative_samples=0.)[0]) - 1
@@ -53,10 +36,17 @@ word_indices = idx_couples[:,0]
 context_indices = idx_couples[:,1].reshape(-1,1)
 
 sg = SkipGram(vocab_length, emb_length=128)
-sg.train(word_indices, context_indices, batch_size=1024, neg_sample_rate=5, n_epochs=3, checkpoint_dir='./model')
+sg.train(word_indices, context_indices, neg_sample_rate=5, learning_rate=1e-3, batch_size=512, n_epochs=3,
+        checkpoint_dir='./model', print_reports=True)
 
 emb = sg.embed(list(range(vocab_length)), checkpoint_dir='./model')
 
-test_words = ['man', 'woman', 'men', 'women', 'king', 'queen', 'boy', 'girl']
-plot_embedding_pca(emb, vocab, [word2int[w] for w in test_words])
-plt.show()
+n_words=20
+n_plots=5
+for i in range(n_plots):
+    fig = plot_embedding_pca(emb, vocab, [word2int[w] for w in vocab[i*n_words:(i+1)*n_words]], offset=2e-3)
+    fig.savefig('pca_example{}.pdf'.format(i+1))
+
+test_words = ['man', 'woman', 'men', 'women', 'king', 'queen', 'he', 'she', 'his', 'her']
+fig = plot_embedding_pca(emb, vocab, [word2int[w] for w in test_words])
+fig.savefig('pca_example.pdf')

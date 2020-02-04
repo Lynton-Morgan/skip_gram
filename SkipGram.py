@@ -119,51 +119,70 @@ class SkipGram(object):
 
             return sess.run(['w_emb:0', 'c_emb:0', 'c_logits:0'], feed_dict={'w:0':w, 'c:0':c})
 
-    def loss(self, word_indices, context_indices, regularize=False, l1_penalty=0., l2_penalty=1., checkpoint_dir=None, use_batches=False, batch_size=1024, seed=0):
-        assert len(word_indices) == len(context_indices)
-        assert type(regularize)==type(True)
-        assert type(use_batches)==type(True)
-        
-        if regularize:
-            loss_name='regularized_loss:0'
-        else:
-            loss_name='loss:0'
-
+    def loss(self, word_indices, context_indices, regularize=False, l1_penalty=0., l2_penalty=1., checkpoint_dir=None, use_batches=True,
+            batch_size=1024, n_loss_batches=1000, seed=0):
         g = self.build_graph(self.vocab_length, self.emb_length, tf_seed=seed)
         with g.as_default():
             saver = v1.train.Saver()
 
         with v1.Session(graph=g) as sess:
             sess.run(v1.global_variables_initializer())
-            if checkpoint_dir is not None:
-                saver.restore(
-                    sess, 
-                    tf.train.latest_checkpoint(checkpoint_dir))
 
-            if use_batches==False:
-                feed = {'w:0': word_indices, 'c:0': context_indices,
-                        'l1_penalty:0':l1_penalty, 'l2_penalty:0':l2_penalty}
-                return sess.run(loss_name, feed_dict=feed)
+            return self._loss(sess, saver, word_indices, context_indices,
+                    regularize=regularize, l1_penalty=l1_penalty, l2_penalty=l2_penalty,
+                    checkpoint_dir=checkpoint_dir, use_batches=use_batches, batch_size=batch_size)
 
-            elif use_batches==True:
-                n_samples = len(word_indices)
-                n_batches = len(range(0, n_samples, batch_size))
+    def _loss(self, sess, saver, word_indices, context_indices, regularize=False, l1_penalty=0, l2_penalty=1., checkpoint_dir=None, use_batches=True, batch_size=1024, n_loss_batches=1000):
+        assert len(word_indices) == len(context_indices)
+        assert type(regularize)==type(True)
+        assert type(use_batches)==type(True)
 
-                losses = np.zeros(n_batches)
-                weights = np.zeros(n_batches)
+        random = np.random.RandomState()
+        
+        if regularize:
+            loss_name='regularized_loss:0'
+        else:
+            loss_name='loss:0'
 
-                for batch_idx, j in enumerate(range(0, n_samples, batch_size)):
-                    w, c = word_indices[j:j+batch_size], context_indices[j:j+batch_size]
-                    feed = {'w:0':w, 'c:0':c,
-                        'l1_penalty:0':l1_penalty, 'l2_penalty:0':l2_penalty}
-                    losses[batch_idx] = sess.run(loss_name, feed_dict=feed)
-                    weights[batch_idx] = len(w)
+        if checkpoint_dir is not None:
+            saver.restore(
+                sess, 
+                tf.train.latest_checkpoint(checkpoint_dir))
 
-                return np.average(losses, None, weights)
+        if use_batches==False:
+            feed = {'w:0': word_indices, 'c:0': context_indices,
+                    'l1_penalty:0':l1_penalty, 'l2_penalty:0':l2_penalty}
+            return sess.run(loss_name, feed_dict=feed)
 
-    def train(self, word_indices, context_indices, l1_penalty=0., l2_penalty=1., sampling='log-uniform', neg_sample_rate=5, batch_size=64, learning_rate=1e-4,
-            n_epochs=5, checkpoint_dir=None, load_prev=False, prev_epochs=0, print_reports=False, reports_per_epoch=10,
-            seed=0):
+        elif use_batches==True:
+            n_samples = len(word_indices)
+            n_batches = len(range(0, n_samples, batch_size))
+
+            n_loss_batches = min(n_loss_batches, n_batches)
+
+            if n_loss_batches == n_batches:
+                batches_to_sample = np.arange(n_batches)
+            else:
+                batches_to_sample = random.choice(n_batches, n_loss_batches, replace=False) 
+
+            losses = np.zeros(n_loss_batches)
+            weights = np.zeros(n_loss_batches)
+
+            for i, batch_idx in enumerate(batches_to_sample):
+                start = batch_idx * batch_size
+                end = start + batch_size
+
+                w, c = word_indices[start:end], context_indices[start:end]
+                feed = {'w:0':w, 'c:0':c,
+                    'l1_penalty:0':l1_penalty, 'l2_penalty:0':l2_penalty}
+                losses[i] = sess.run(loss_name, feed_dict=feed)
+                weights[i] = len(w)
+
+            return np.average(losses, None, weights)
+
+    def train(self, word_indices, context_indices, l1_penalty=0., l2_penalty=1., sampling='log-uniform', neg_sample_rate=5, learning_rate=1e-4,
+            batch_size=64, n_epochs=5, checkpoint_dir=None, load_prev=False, prev_epochs=0,
+            print_reports=False, n_batch_reports=10, n_loss_batches=1000, seed=0):
         assert len(word_indices) == len(context_indices)
 
         word_indices = np.copy(word_indices)
@@ -173,7 +192,7 @@ class SkipGram(object):
 
         n_samples = len(word_indices)
         n_batches = len(range(0, n_samples, batch_size))
-        report_at_batches = [int(round(x * n_batches / reports_per_epoch)) for x in range(1, reports_per_epoch+1)]
+        report_at_batches = [int(round(x * n_batches / n_batch_reports)) for x in range(1, n_batch_reports+1)]
         
         context_size = len(context_indices[0])
         n_neg_samples = max(1, int(round(neg_sample_rate * batch_size * context_size)))
@@ -184,7 +203,7 @@ class SkipGram(object):
 
         with v1.Session(graph=g) as sess:
             sess.run(v1.global_variables_initializer())
-            if checkpoint_dir is not None and load_prev == True:
+            if checkpoint_dir is not None and load_prev:
                 saver.restore(
                     sess, 
                     tf.train.latest_checkpoint(checkpoint_dir))
@@ -197,12 +216,18 @@ class SkipGram(object):
 
                     _ = sess.run('train_op', feed_dict=feed)
 
-                    if print_reports == True and batch_n in report_at_batches:
+                    if print_reports and batch_n in report_at_batches:
                         loss = sess.run('regularized_loss:0', feed_dict=feed)
                         print(str(datetime.now())+':', 'Epoch %d, batch %d: loss %.4f' % (epoch+prev_epochs, batch_n, loss))
 
                 if checkpoint_dir is not None:
                     saver.save(sess, os.path.join(checkpoint_dir, 'skip_gram_'+str(self.emb_length)), global_step=epoch+prev_epochs)
+
+                    if print_reports:
+                        loss = self._loss(sess, saver,
+                                word_indices, context_indices, regularize=True, l1_penalty=l1_penalty, l2_penalty=l2_penalty,
+                                checkpoint_dir=checkpoint_dir, use_batches=True, batch_size=batch_size, n_loss_batches=n_loss_batches)
+                        print(str(datetime.now())+':', 'Epoch %d: loss %.4f' % (epoch+prev_epochs, loss))
 
                 if epoch < n_epochs:
                     random.shuffle(word_indices)
