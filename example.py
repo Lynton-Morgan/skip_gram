@@ -25,6 +25,7 @@ word_counts.update(words)
 
 vocab_length = len(word_counts)
 vocab = [p[0] for p in word_counts.most_common()]
+unigrams = [p[1] for p in word_counts.most_common()]
 
 word2int = {p[0]:i for i, p in enumerate(word_counts.most_common())}
 int2word = {i:p[0] for i, p in enumerate(word_counts.most_common())}
@@ -35,8 +36,8 @@ word_indices = idx_couples[:,0]
 context_indices = idx_couples[:,1].reshape(-1,1)
 
 sg = SkipGram(vocab_length, emb_length=128)
-sg.train(word_indices, context_indices, neg_sample_rate=5, learning_rate=1e-3, batch_size=512, n_epochs=3,
-        checkpoint_dir='./model', print_reports=True)
+sg.train(word_indices, context_indices, neg_sample_rate=5, sampling='unigram', unigrams=unigrams, learning_rate=1e-3,
+        batch_size=512, n_epochs=3, checkpoint_dir='./model', print_reports=True)
 
 emb = sg.embed(list(range(vocab_length)), checkpoint_dir='./model')
 
