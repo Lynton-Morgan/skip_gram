@@ -123,7 +123,7 @@ class SkipGram(object):
         assert len(word_indices) == len(context_indices)
         assert type(regularize)==type(True)
         assert type(use_batches)==type(True)
-
+        
         if regularize:
             loss_name='regularized_loss:0'
         else:
@@ -165,6 +165,9 @@ class SkipGram(object):
             n_epochs=5, checkpoint_dir=None, load_prev=False, prev_epochs=0, print_reports=False, reports_per_epoch=10,
             seed=0):
         assert len(word_indices) == len(context_indices)
+
+        word_indices = np.copy(word_indices)
+        context_indices = np.copy(context_indices)
 
         random = np.random.RandomState(seed)
 
