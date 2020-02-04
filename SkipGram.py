@@ -31,7 +31,7 @@ class SkipGram(object):
             embeddings = tf.Variable(emb_init(shape=(vocab_length, emb_length)),
                     name='embedding')
             l1_loss = l1_penalty * tf.reduce_mean(tf.abs(embeddings))
-            l2_loss = l2_penalty * tf.reduce_mean(tf.math.reduce_euclidean_norm(embeddings, axis=1))
+            l2_loss = l2_penalty * tf.reduce_mean(tf.square(embeddings))
 
             w_emb = tf.nn.embedding_lookup(
                     embeddings,
