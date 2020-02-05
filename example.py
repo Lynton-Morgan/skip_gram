@@ -29,15 +29,27 @@ unigrams = [p[1] for p in word_counts.most_common()]
 
 word2int = {p[0]:i for i, p in enumerate(word_counts.most_common())}
 int2word = {i:p[0] for i, p in enumerate(word_counts.most_common())}
-# skipgrams() assumes 0 is not a word, so some shifting is done
 text_indices = np.array([word2int[w] for w in words])
-idx_couples = np.array(skipgrams(text_indices+1, vocab_length+1, window_size=4, negative_samples=0.)[0]) - 1
-word_indices = idx_couples[:,0]
-context_indices = idx_couples[:,1].reshape(-1,1)
+
+t=1e-5
+sampling_prob = np.sqrt(t / (unigrams/np.sum(unigrams)) )
+sampling_prob = np.minimum(1, sampling_prob)
+# skipgrams() assumes 0 is not a word, so some shifting is done
+sampling_table = np.concatenate(([0], sampling_prob))
 
 sg = SkipGram(vocab_length, emb_length=128)
-sg.train(word_indices, context_indices, neg_sample_rate=5, sampling='unigram', unigrams=unigrams, learning_rate=1e-3,
-        batch_size=512, n_epochs=3, checkpoint_dir='./model', print_reports=True)
+n_epochs=5
+for epoch in range(1, n_epochs+1):
+    load_prev=False if epoch==1 else True
+
+    # skipgrams() assumes 0 is not a word, so some shifting is done
+    idx_couples = np.array(skipgrams(text_indices+1, vocab_length+1, window_size=4, sampling_table=sampling_table,
+        negative_samples=0.)[0]) - 1
+    word_indices = idx_couples[:,0]
+    context_indices = idx_couples[:,1].reshape(-1,1)
+
+    sg.train(word_indices, context_indices, neg_sample_rate=5, sampling='unigram', unigrams=unigrams, learning_rate=1e-3,
+            batch_size=512, n_epochs=1, load_prev=load_prev, prev_epochs=epoch-1, checkpoint_dir='./model', print_reports=True)
 
 emb = sg.embed(list(range(vocab_length)), checkpoint_dir='./model')
 
