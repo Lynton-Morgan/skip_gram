@@ -249,14 +249,17 @@ class SkipGram(object):
                     random.shuffle(word_indices)
                     random.shuffle(context_indices)
 
-    def embed(self, word_indices, checkpoint_dir='./model', seed=0):
+    def embed(self, word_indices, checkpoint_dir=None, seed=0):
         g = self.build_graph(self.vocab_length, self.emb_length, tf_seed=seed)
         with g.as_default():
             saver = v1.train.Saver()
 
         with v1.Session(graph=g) as sess:
             sess.run(v1.global_variables_initializer())
-            if checkpoint_dir is not None:
+
+            if checkpoint_dir is None:
+                v1.logging.warn('No checkpoint selected. Embedding matrix will be randomly initialized')
+            else:
                 saver.restore(
                     sess, 
                     tf.train.latest_checkpoint(checkpoint_dir))
