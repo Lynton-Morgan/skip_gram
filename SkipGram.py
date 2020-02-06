@@ -236,14 +236,14 @@ class SkipGram(object):
                         loss = sess.run('regularized_loss:0', feed_dict=feed)
                         print(str(datetime.now())+':', 'Epoch %d, batch %d: loss %.4f' % (epoch+prev_epochs, batch_n, loss))
 
+                if print_reports:
+                    loss = self._loss(sess, saver, word_indices, context_indices,
+                            regularize=True, l1_penalty=l1_penalty, l2_penalty=l2_penalty,
+                            use_batches=True, batch_size=batch_size, n_loss_batches=n_loss_batches)
+                    print(str(datetime.now())+':', 'Epoch %d: loss %.4f' % (epoch+prev_epochs, loss))
+
                 if checkpoint_dir is not None:
                     saver.save(sess, os.path.join(checkpoint_dir, 'skip_gram_'+str(self.emb_length)), global_step=epoch+prev_epochs)
-
-                    if print_reports:
-                        loss = self._loss(sess, saver,
-                                word_indices, context_indices, regularize=True, l1_penalty=l1_penalty, l2_penalty=l2_penalty,
-                                checkpoint_dir=checkpoint_dir, use_batches=True, batch_size=batch_size, n_loss_batches=n_loss_batches)
-                        print(str(datetime.now())+':', 'Epoch %d: loss %.4f' % (epoch+prev_epochs, loss))
 
                 if epoch < n_epochs:
                     random.shuffle(word_indices)
