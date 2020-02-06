@@ -11,7 +11,7 @@ class SkipGram(object):
         self.emb_length = emb_length
 
     def build_graph(self, vocab_length, emb_length, context_size=None,
-            sampling='log-uniform', n_neg_samples=1, unigrams=None, distortion=0.75, tf_seed=0):
+            sampling='log-uniform', n_neg_samples=1, unigrams=None, distortion=0.75, tf_seed=None):
         if sampling=='unigram':
             assert unigrams is not None
             assert len(unigrams)==vocab_length
@@ -135,7 +135,7 @@ class SkipGram(object):
             return sess.run(['w_emb:0', 'c_emb:0', 'c_logits:0'], feed_dict={'w:0':w, 'c:0':c})
 
     def loss(self, word_indices, context_indices, regularize=False, l1_penalty=0., l2_penalty=1., checkpoint_dir=None, use_batches=True,
-            batch_size=1024, n_loss_batches=1000, seed=0):
+            batch_size=1024, n_loss_batches=1000, seed=None):
         g = self.build_graph(self.vocab_length, self.emb_length, tf_seed=seed)
         with g.as_default():
             saver = v1.train.Saver()
@@ -197,7 +197,7 @@ class SkipGram(object):
 
     def train(self, word_indices, context_indices, l1_penalty=0., l2_penalty=1., sampling='log-uniform', neg_sample_rate=5,
             unigrams=None, distortion=0.75, learning_rate=1e-4, batch_size=64, n_epochs=5, checkpoint_dir=None,
-            load_prev=False, prev_epochs=0, print_reports=False, n_batch_reports=10, n_loss_batches=1000, seed=0):
+            load_prev=False, prev_epochs=0, print_reports=False, n_batch_reports=10, n_loss_batches=1000, seed=None):
         assert len(word_indices) == len(context_indices)
 
         word_indices = np.copy(word_indices)
@@ -249,7 +249,7 @@ class SkipGram(object):
                     random.shuffle(word_indices)
                     random.shuffle(context_indices)
 
-    def embed(self, word_indices, checkpoint_dir=None, seed=0):
+    def embed(self, word_indices, checkpoint_dir=None, seed=None):
         g = self.build_graph(self.vocab_length, self.emb_length, tf_seed=seed)
         with g.as_default():
             saver = v1.train.Saver()
