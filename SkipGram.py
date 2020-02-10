@@ -25,7 +25,7 @@ class SkipGram(object):
             w = v1.placeholder(tf.int64, shape=(None), name='w')
 
             # context indices
-            c = v1.placeholder(tf.int64, shape=(None, None), name='c')
+            c = v1.placeholder(tf.int64, shape=(None, context_size), name='c')
 
             learning_rate = v1.placeholder_with_default(1e-4, shape=(), name='learning_rate')
 
@@ -49,7 +49,7 @@ class SkipGram(object):
 
             w_emb_reshaped = tf.reshape(w_emb, (-1, 1, emb_length))
             c_logits = tf.reduce_sum(w_emb_reshaped * c_emb, axis=2, name='c_logits')
-            loss_normalizer = tf.reduce_logsumexp(tf.matmul(w_emb, tf.transpose(embeddings)), axis=1)
+            loss_normalizer = context_size * tf.reduce_logsumexp(tf.matmul(w_emb, tf.transpose(embeddings)), axis=1)
             loss = tf.reduce_mean(
                     loss_normalizer - tf.reduce_sum(c_logits, axis=1),
                     name='loss')
