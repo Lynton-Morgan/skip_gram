@@ -30,7 +30,7 @@ class SkipGram(object):
             learning_rate = v1.placeholder_with_default(1e-4, shape=(), name='learning_rate')
 
             l1_penalty = v1.placeholder_with_default(0.0, shape=(), name='l1_penalty')
-            l2_penalty = v1.placeholder_with_default(1.0, shape=(), name='l2_penalty')
+            l2_penalty = v1.placeholder_with_default(0.0, shape=(), name='l2_penalty')
 
             emb_init = v1.initializers.he_normal(seed=tf_seed)
             embeddings = tf.Variable(emb_init(shape=(vocab_length, emb_length)),
@@ -134,7 +134,7 @@ class SkipGram(object):
 
             return sess.run(['w_emb:0', 'c_emb:0', 'c_logits:0'], feed_dict={'w:0':w, 'c:0':c})
 
-    def loss(self, word_indices, context_indices, regularize=False, l1_penalty=0., l2_penalty=1., checkpoint_dir=None, use_batches=True,
+    def loss(self, word_indices, context_indices, regularize=False, l1_penalty=0., l2_penalty=0., checkpoint_dir=None, use_batches=True,
             batch_size=1024, n_loss_batches=1000, seed=None):
         g = self.build_graph(self.vocab_length, self.emb_length, tf_seed=seed)
         with g.as_default():
@@ -147,7 +147,7 @@ class SkipGram(object):
                     regularize=regularize, l1_penalty=l1_penalty, l2_penalty=l2_penalty,
                     checkpoint_dir=checkpoint_dir, use_batches=use_batches, batch_size=batch_size)
 
-    def _loss(self, sess, saver, word_indices, context_indices, regularize=False, l1_penalty=0, l2_penalty=1., checkpoint_dir=None, use_batches=True, batch_size=1024, n_loss_batches=1000):
+    def _loss(self, sess, saver, word_indices, context_indices, regularize=False, l1_penalty=0, l2_penalty=0., checkpoint_dir=None, use_batches=True, batch_size=1024, n_loss_batches=1000):
         assert len(word_indices) == len(context_indices)
         assert type(regularize)==type(True)
         assert type(use_batches)==type(True)
@@ -195,7 +195,7 @@ class SkipGram(object):
 
             return np.average(losses, None, weights)
 
-    def train(self, word_indices, context_indices, l1_penalty=0., l2_penalty=1., sampling='log-uniform', neg_sample_rate=5,
+    def train(self, word_indices, context_indices, l1_penalty=0., l2_penalty=0., sampling='log-uniform', neg_sample_rate=5,
             unigrams=None, distortion=0.75, learning_rate=1e-3, batch_size=64, n_epochs=1, checkpoint_dir=None,
             load_prev=False, prev_epochs=0, print_reports=False, n_batch_reports=10, n_loss_batches=1000, seed=None):
         assert len(word_indices) == len(context_indices)

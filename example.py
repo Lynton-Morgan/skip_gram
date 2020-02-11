@@ -48,8 +48,9 @@ for epoch in range(1, n_epochs+1):
     word_indices = idx_couples[:,0]
     context_indices = idx_couples[:,1].reshape(-1,1)
 
-    sg.train(word_indices, context_indices, neg_sample_rate=5, sampling='unigram', unigrams=unigrams, learning_rate=1e-3,
-            batch_size=512, n_epochs=1, load_prev=load_prev, prev_epochs=epoch-1, checkpoint_dir='./model', print_reports=True)
+    sg.train(word_indices, context_indices, l2_penalty=1.0, neg_sample_rate=5, sampling='unigram', unigrams=unigrams,
+            learning_rate=1e-3, batch_size=512, n_epochs=1, load_prev=load_prev, prev_epochs=epoch-1,
+            checkpoint_dir='./model', print_reports=True)
 
 emb = sg.embed(list(range(vocab_length)), checkpoint_dir='./model')
 
