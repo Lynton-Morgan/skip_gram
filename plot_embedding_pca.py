@@ -1,12 +1,15 @@
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 
-def plot_embedding_pca(embeddings, vocab, word_indices, random_state=0, offset=.01, width=12, height=8, title='PCA Plot'):
+def plot_embedding_pca(embeddings, vocab, word_indices, random_state=0, offset=.01, width=12, height=8, title='PCA Plot', fit_to_all=True):
     fig = plt.figure()
     fig.set_size_inches(width, height)
 
     pca = PCA(n_components=2, random_state=random_state)
-    pca.fit(embeddings)
+    if fit_to_all:
+        pca.fit(embeddings)
+    else:
+        pca.fit(embeddings[word_indices])
     emb_pca = pca.transform(embeddings)
 
     var_ratio = pca.explained_variance_ratio_
