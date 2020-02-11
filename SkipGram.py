@@ -196,7 +196,7 @@ class SkipGram(object):
             return np.average(losses, None, weights)
 
     def train(self, word_indices, context_indices, l1_penalty=0., l2_penalty=1., sampling='log-uniform', neg_sample_rate=5,
-            unigrams=None, distortion=0.75, learning_rate=1e-4, batch_size=64, n_epochs=5, checkpoint_dir=None,
+            unigrams=None, distortion=0.75, learning_rate=1e-3, batch_size=64, n_epochs=1, checkpoint_dir=None,
             load_prev=False, prev_epochs=0, print_reports=False, n_batch_reports=10, n_loss_batches=1000, seed=None):
         assert len(word_indices) == len(context_indices)
 
