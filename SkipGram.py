@@ -178,7 +178,7 @@ class SkipGram(object):
             if n_loss_batches == n_batches:
                 batches_to_sample = np.arange(n_batches)
             else:
-                batches_to_sample = random.choice(n_batches, n_loss_batches, replace=False) 
+                batches_to_sample = random.choice(n_batches, n_loss_batches, replace=False)
 
             losses = np.zeros(n_loss_batches)
             weights = np.zeros(n_loss_batches)
@@ -210,7 +210,7 @@ class SkipGram(object):
         report_at_batches = [int(round(x * n_batches / n_batch_reports)) for x in range(1, n_batch_reports+1)]
         
         context_size = len(context_indices[0])
-        n_neg_samples = max(1, int(round(neg_sample_rate * batch_size * context_size)))
+        n_neg_samples = max(1, int(round(neg_sample_rate * context_size)))
 
         g = self.build_graph(self.vocab_length, self.emb_length, context_size=context_size,
                 sampling=sampling, unigrams=unigrams, distortion=distortion, n_neg_samples=n_neg_samples, tf_seed=seed)

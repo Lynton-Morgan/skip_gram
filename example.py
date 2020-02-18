@@ -38,7 +38,7 @@ sampling_prob = np.minimum(1, sampling_prob)
 sampling_table = np.concatenate(([0], sampling_prob))
 
 sg = SkipGram(vocab_length, emb_length=128)
-n_epochs=6
+n_epochs=10
 for epoch in range(1, n_epochs+1):
     load_prev=False if epoch==1 else True
 
@@ -48,7 +48,7 @@ for epoch in range(1, n_epochs+1):
     word_indices = idx_couples[:,0]
     context_indices = idx_couples[:,1].reshape(-1,1)
 
-    sg.train(word_indices, context_indices, l2_penalty=1.0, neg_sample_rate=5, sampling='unigram', unigrams=unigrams,
+    sg.train(word_indices, context_indices, l2_penalty=1.0, neg_sample_rate=20, sampling='unigram', unigrams=unigrams,
             learning_rate=2.5, batch_size=512, n_epochs=1, load_prev=load_prev, prev_epochs=epoch-1,
             checkpoint_dir='./model', print_reports=True)
 
