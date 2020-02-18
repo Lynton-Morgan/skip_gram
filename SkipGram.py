@@ -27,7 +27,7 @@ class SkipGram(object):
             # context indices
             c = v1.placeholder(tf.int64, shape=(None, context_size), name='c')
 
-            learning_rate = v1.placeholder_with_default(1e-4, shape=(), name='learning_rate')
+            learning_rate = v1.placeholder_with_default(1.0, shape=(), name='learning_rate')
 
             l1_penalty = v1.placeholder_with_default(0.0, shape=(), name='l1_penalty')
             l2_penalty = v1.placeholder_with_default(0.0, shape=(), name='l2_penalty')
@@ -96,7 +96,7 @@ class SkipGram(object):
                     name='sampled_loss')
             training_loss = sampled_loss + l1_loss + l2_loss
 
-            optimizer = v1.train.AdamOptimizer(learning_rate)
+            optimizer = v1.train.GradientDescentOptimizer(learning_rate)
             train_op = optimizer.minimize(training_loss, name='train_op')
 
         return g
@@ -196,7 +196,7 @@ class SkipGram(object):
             return np.average(losses, None, weights)
 
     def train(self, word_indices, context_indices, l1_penalty=0., l2_penalty=0., sampling='log-uniform', neg_sample_rate=5,
-            unigrams=None, distortion=0.75, learning_rate=1e-3, batch_size=64, n_epochs=1, checkpoint_dir=None,
+            unigrams=None, distortion=0.75, learning_rate=1, batch_size=64, n_epochs=1, checkpoint_dir=None,
             load_prev=False, prev_epochs=0, print_reports=False, n_batch_reports=10, n_loss_batches=1000, seed=None):
         assert len(word_indices) == len(context_indices)
 
