@@ -246,8 +246,9 @@ class SkipGram(object):
                     saver.save(sess, os.path.join(checkpoint_dir, 'skip_gram_'+str(self.emb_length)), global_step=epoch+prev_epochs)
 
                 if epoch < n_epochs:
-                    random.shuffle(word_indices)
-                    random.shuffle(context_indices)
+                    new_order = random.permutation(n_samples)
+                    word_indices = word_indices[new_order]
+                    context_indices = context_indices[new_order]
 
     def embed(self, word_indices, checkpoint_dir=None, seed=None):
         g = self.build_graph(self.vocab_length, self.emb_length, tf_seed=seed)
